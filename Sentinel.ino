@@ -1,86 +1,156 @@
+#include <AFMotor.h>
+#include <NewPing.h>  // Add this line to include the NewPing library
 #include <Servo.h>
 
-// Define ultrasonic sensor pins
-const int trigPin = 9;
-const int echoPin = 10;
+#define TRIG_PIN A4
+#define ECHO_PIN A5
+#define MAX_DISTANCE 200
+#define MAX_SPEED 190 // sets speed of DC motors
+#define MAX_SPEED_OFFSET 20
+NewPing sonar(TRIG_PIN, ECHO_PIN, MAX_DISTANCE); // Declare sonar globally
 
-// Define motor control pins
-const int leftMotor1 = 5;
-const int leftMotor2 = 6;
-const int rightMotor1 = 10;
-const int rightMotor2 = 11;
+AF_DCMotor motor2(2, MOTOR12_1KHZ); // Use MOTOR12_64KHZ for more torque
+AF_DCMotor motor4(4, MOTOR34_1KHZ);
 
-// Create a Servo object for the servo motor
-Servo servoMotor;
+Servo myservo;
 
-void setup() {
-  // Initialize ultrasonic sensor pins
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  
-  // Initialize motor control pins
-  pinMode(leftMotor1, OUTPUT);
-  pinMode(leftMotor2, OUTPUT);
-  pinMode(rightMotor1, OUTPUT);
-  pinMode(rightMotor2, OUTPUT);
-  
-  // Attach the servo motor to pin 3
-  servoMotor.attach(3);
-  
-  // Initialize serial communication for debugging
-  Serial.begin(9600);
+boolean goesForward = false;
+int distance = 100;
+int speedSet = 0;
+
+void setup()
+{
+  myservo.attach(10);
+  myservo.write(115);
+  delay(2000);
+  distance = readPing();
+  delay(100);
+  distance = readPing();
+  delay(100);
+  distance = readPing();
+  delay(100);
+  distance = readPing();
+  delay(100);
 }
 
-void loop() {
-  // Calculate the distance from the ultrasonic sensor
-  long duration, distance;
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
-  distance = (duration / 2) / 29.1;  // Divide by 29.1 to convert to centimeters
+void loop()
+{
+  int distanceR = 0;
+  int distanceL = 0;
+  delay(40);
 
-  // Print the distance to the serial monitor
-  Serial.print("Distance: ");
-  Serial.print(distance);
-  Serial.println(" cm");
-
-  // Set a distance threshold for obstacle avoidance
-  int threshold = 20; // Adjust as needed
-
-  if (distance < threshold) {
-    // Obstacle detected, change direction
-    Serial.println("Obstacle detected!");
+  if (distance <= 15)
+  {
+    moveStop();
+    delay(100);
     moveBackward();
-    delay(1000);
-    turnRight();
-  } else {
-    // No obstacle, move forward
+    delay(300);
+    moveStop();
+    delay(200);
+    distanceR = lookRight();
+    delay(200);
+    distanceL = lookLeft();
+    delay(200);
+
+    if (distanceR >= distanceL)
+    {
+      turnRight();
+      moveStop();
+    }
+    else
+    {
+      turnLeft();
+      moveStop();
+    }
+  }
+  else
+  {
     moveForward();
+  }
+  distance = readPing();
+}
+
+int lookRight()
+{
+  myservo.write(50);
+  delay(500);
+  int distance = readPing();
+  delay(100);
+  myservo.write(115);
+  return distance;
+}
+     
+int lookLeft()
+{
+  myservo.write(170);
+  delay(500);
+  int distance = readPing();
+  delay(100);
+  myservo.write(115);
+  return distance;
+}
+
+int readPing()
+{
+  delay(70);
+  int cm = sonar.ping_cm();
+  if (cm == 0)
+  {
+    cm = 250;
+  }
+  return cm;
+}
+
+void moveStop()
+{
+  motor2.run(RELEASE);
+  motor4.run(RELEASE);
+}
+
+void moveForward()
+{
+  if (!goesForward)
+  {
+    goesForward = true;
+    motor2.run(FORWARD);
+    motor4.run(FORWARD);
+    for (speedSet = 0; speedSet < MAX_SPEED; speedSet += 2)
+    {
+      motor2.setSpeed(speedSet);
+      motor4.setSpeed(speedSet);
+      delay(5);
+    }
   }
 }
 
-// Move the robot forward
-void moveForward() {
-  digitalWrite(leftMotor1, HIGH);
-  digitalWrite(leftMotor2, LOW);
-  digitalWrite(rightMotor1, HIGH);
-  digitalWrite(rightMotor2, LOW);
+void moveBackward()
+{
+  goesForward = false;
+  motor2.run(BACKWARD);
+  motor4.run(BACKWARD);
+  for (speedSet = 0; speedSet < MAX_SPEED; speedSet += 2)
+  {
+    motor2.setSpeed(speedSet);
+    motor4.setSpeed(speedSet);
+    delay(5);
+  }
 }
 
-// Move the robot backward
-void moveBackward() {
-  digitalWrite(leftMotor1, LOW);
-  digitalWrite(leftMotor2, HIGH);
-  digitalWrite(rightMotor1, LOW);
-  digitalWrite(rightMotor2, HIGH);
+void turnRight()
+{
+  
+  motor2.run(FORWARD);
+  motor4.run(BACKWARD);
+  delay(500);
+  motor2.run(FORWARD);
+  motor4.run(FORWARD);
 }
 
-// Turn the robot to the right
-void turnRight() {
-  servoMotor.write(180); // Rotate the servo motor to turn right
-  delay(500); // Adjust the delay for the turn duration
-  servoMotor.write(90); // Bring the servo motor back to the center position
+void turnLeft()
+{
+  motor2.run(BACKWARD);
+  motor4.run(FORWARD);
+  delay(500);
+  motor2.run(FORWARD);
+  motor4.run(FORWARD);
 }
