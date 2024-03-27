@@ -69,7 +69,6 @@ void loop()
   }
   distance = readPing();
 }
-
 int lookRight()
 {
   myservo.write(50);
@@ -78,8 +77,7 @@ int lookRight()
   delay(100);
   myservo.write(115);
   return distance;
-}
-     
+}    
 int lookLeft()
 {
   myservo.write(170);
@@ -89,7 +87,6 @@ int lookLeft()
   myservo.write(115);
   return distance;
 }
-
 int readPing()
 {
   delay(70);
@@ -100,13 +97,11 @@ int readPing()
   }
   return cm;
 }
-
 void moveStop()
 {
   motor2.run(RELEASE);
   motor4.run(RELEASE);
 }
-
 void moveForward()
 {
   if (!goesForward)
@@ -122,7 +117,6 @@ void moveForward()
     }
   }
 }
-
 void moveBackward()
 {
   goesForward = false;
@@ -135,17 +129,14 @@ void moveBackward()
     delay(5);
   }
 }
-
 void turnRight()
-{
-  
+{ 
   motor2.run(FORWARD);
   motor4.run(BACKWARD);
   delay(500);
   motor2.run(FORWARD);
   motor4.run(FORWARD);
 }
-
 void turnLeft()
 {
   motor2.run(BACKWARD);
